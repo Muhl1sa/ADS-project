@@ -1,0 +1,139 @@
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+typedef vector<double> Vector;
+typedef vector<Vector> Matrix;
+
+const double EPSILON = 1e-8;
+
+void printVector(const Vector& v) {
+    for (double val : v) {
+        cout << val << " ";
+    }
+    cout << endl;
+}
+
+void printMatrix(const Matrix& mat) {
+    for (const Vector& row : mat) {
+        printVector(row);
+    }
+}
+
+pair<int, int> findPivot(const Matrix& mat) {
+    int m = mat.size();
+    int n = mat[0].size();
+
+    int pivotRow = -1;
+    int pivotCol = -1;
+
+    
+    for (int j = 0; j < n - 1; j++) {
+        if (mat[m - 1][j] < 0 && (pivotCol == -1  mat[m - 1][j] < mat[m - 1][pivotCol])) {
+            pivotCol = j;
+        }
+    }
+
+    if (pivotCol == -1) {
+        return make_pair(-1, -1);  
+    }
+
+    
+    for (int i = 0; i < m - 1; i++) {
+        if (mat[i][pivotCol] > 0) {
+            double ratio = mat[i][n - 1] / mat[i][pivotCol];
+            if (pivotRow == -1  ratio < mat[pivotRow][n - 1] / mat[pivotRow][pivotCol]) {
+                pivotRow = i;
+            }
+        }
+    }
+
+    return make_pair(pivotRow, pivotCol);
+}
+
+void performPivot(Matrix& mat, int pivotRow, int pivotCol) {
+    int m = mat.size();
+    int n = mat[0].size();
+
+    double pivotElement = mat[pivotRow][pivotCol];
+
+    for (int j = 0; j < n; j++) {
+        mat[pivotRow][j] /= pivotElement;
+    }
+
+    
+    for (int i = 0; i < m; i++) {
+        if (i != pivotRow) {
+            double factor = mat[i][pivotCol];
+            for (int j = 0; j < n; j++) {
+                mat[i][j] -= factor * mat[pivotRow][j];
+            }
+        }
+    }
+}
+
+pair<Vector, double> simplex(const Matrix& A, const Vector& b, const Vector& c) {
+    int m = A.size();
+    int n = A[0].size();
+
+ 
+    Matrix tableau(m + 1, Vector(n + m + 1));
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            tableau[i][j] = A[i][j];
+        }
+        tableau[i][n + i] = 1;
+        tableau[i][n + m] = b[i];
+    }
+    for (int j = 0; j < n; j++) {
+        tableau[m][j] = c[j];
+    }
+
+   
+    while (true) {
+        pair<int, int> pivot = findPivot(tableau);
+        int pivotRow = pivot.first;
+        int pivotCol = pivot.second;
+
+        if (pivotRow == -1  pivotCol == -1) {
+            break;  // Optimal solution reached
+        }
+
+        performPivot(tableau, pivotRow, pivotCol);
+    }
+
+  
+    Vector solution(n);
+    double objectiveValue = -tableau[m][n + m];
+
+    for (int i = 0; i < m; i++) {
+        int pivotCol = -1;
+        for (int j = 0; j < n; j++) {
+            if (abs(tableau[i][j] - 1) < EPSILON && (pivotCol == -1  abs(tableau[i][pivotCol] - 1) >= EPSILON)) {
+                pivotCol = j;
+            }
+        }
+        if (pivotCol != -1) {
+            solution[pivotCol] = tableau[i][n + m];
+        }
+    }
+
+    return make_pair(solution, objectiveValue);
+}
+
+int main() {
+    Matrix A = {{1, -1}, {3, 1}, {4, 3}};  // Coefficients of inequality constraints
+    Vector b = {2, 5, 7};  // RHS values of inequality constraints
+    Vector c = {3, 2};  // Objective function coefficients
+
+    pair<Vector, double> solution = simplex(A, b, c);
+    Vector x = solution.first;
+    double objVal = solution.second;
+
+    cout << "Optimal solution: ";
+    printVector(x);
+    cout << "Optimal objective value: " << objVal << endl;
+
+    return 0;
+}
